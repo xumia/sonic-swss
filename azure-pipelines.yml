@@ -9,7 +9,6 @@ trigger:
       - "*"
 
 stages:
-stages:
 - stage: Build
   jobs:
   - template: .azure-pipelines/build-template.yml
