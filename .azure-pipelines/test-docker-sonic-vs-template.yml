@@ -17,7 +17,6 @@ jobs:
   steps:
   - task: DownloadPipelineArtifact@2
     inputs:
-      runId: 17871
       artifact: docker-sonic-vs
     displayName: "Download docker sonic vs image"
 
