@@ -78,22 +78,56 @@ jobs:
       source: specific
       project: build
       pipeline: 12
-      artifacts: ${{ parameters.sairedis_artifact_name }}
+      artifact: ${{ parameters.sairedis_artifact_name }}
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/201911'
     displayName: "Download sonic sairedis deb packages"
+  - task: DownloadPipelineArtifact@2
+    inputs:
+      source: specific
+      project: build
+      pipeline: 142
+      artifact: sonic-buildimage.vs
+      runVersion: 'latestFromBranch'
+      runBranch: 'refs/heads/201911'
+      patterns: target/debs/stretch/*.deb
+    displayName: "Download sonic image deb packages"
   - script: |
-      sudo dpkg -i ${{ parameters.swss_common_artifact_name }}/libswsscommon_1.0.0_${{ parameters.arch }}.deb
-      sudo dpkg -i ${{ parameters.swss_common_artifact_name }}/libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/libsaivs_*.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/libsaivs-dev_*.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/libsairedis_*.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/libsairedis-dev_*.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/libsaimetadata_*.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/libsaimetadata-dev_*.deb
-      sudo dpkg -i ${{ parameters.sairedis_artifact_name }}/syncd-vs_*.deb
+      pushd $(Pipeline.Workspace)/target/debs/stretch
+      cp libhiredis0.14_*.deb \
+         libhiredis-dev_*.deb \
+         libnl-3-200_*.deb \
+         libnl-3-dev_*.deb \
+         libnl-genl-3-200_*.deb \
+         libnl-genl-3-dev_*.deb \
+         libnl-route-3-200_*.deb \
+         libnl-route-3-dev_*.deb \
+         libnl-nf-3-200_*.deb \
+         libnl-nf-3-dev_*.deb \
+         libnl-cli-3-200_*.deb \
+         swig3.0_*.deb \
+         $(Pipeline.Workspace)/
+         cp libteam-dev_1.28-1_amd64.deb libteam5_1.28-1_amd64.deb libteamdctl0_1.28-1_amd64.deb $(Pipeline.Workspace)/
+      popd
+      pushd $(Pipeline.Workspace)
+      cp libswsscommon_1.0.0_${{ parameters.arch }}.deb \
+         libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb \
+         libsaivs_*.deb \
+         libsaivs-dev_*.deb \
+         libsairedis_*.deb \
+         libsairedis-dev_*.deb \
+         libsaimetadata_*.deb \
+         libsaimetadata-dev_*.deb \
+         syncd-vs_*.deb \
+         $(Pipeline.Workspace)/
+       popd
+       ls -l $(Pipeline.Workspace)/*.deb
+    displayName: "Copy deb packages"
+  - script: |
+      sudo apt-get install -y libzmq5 libzmq3-dev
+      sudo dpkg -i --force-confask,confnew *.deb || sudo apt-get install -f -y
     workingDirectory: $(Pipeline.Workspace)
-    displayName: "Install sonic swss common and sairedis"
+    displayName: "Install dependencies"
   - checkout: self
     submodules: true
   - script: |
