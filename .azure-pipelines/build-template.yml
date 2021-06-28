@@ -69,7 +69,7 @@ jobs:
       source: specific
       project: build
       pipeline: 9
-      artifacts: ${{ parameters.swss_common_artifact_name }}
+      artifact: ${{ parameters.swss_common_artifact_name }}
       runVersion: 'latestFromBranch'
       runBranch: 'refs/heads/201911'
     displayName: "Download sonic swss common deb packages"
@@ -109,19 +109,7 @@ jobs:
          $(Pipeline.Workspace)/
          cp libteam-dev_1.28-1_amd64.deb libteam5_1.28-1_amd64.deb libteamdctl0_1.28-1_amd64.deb $(Pipeline.Workspace)/
       popd
-      pushd $(Pipeline.Workspace)
-      cp libswsscommon_1.0.0_${{ parameters.arch }}.deb \
-         libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb \
-         libsaivs_*.deb \
-         libsaivs-dev_*.deb \
-         libsairedis_*.deb \
-         libsairedis-dev_*.deb \
-         libsaimetadata_*.deb \
-         libsaimetadata-dev_*.deb \
-         syncd-vs_*.deb \
-         $(Pipeline.Workspace)/
-       popd
-       ls -l $(Pipeline.Workspace)/*.deb
+      ls -l $(Pipeline.Workspace)/*.deb
     displayName: "Copy deb packages"
   - script: |
       sudo apt-get install -y libzmq5 libzmq3-dev
