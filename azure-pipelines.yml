@@ -15,7 +15,7 @@ stages:
   - template: .azure-pipelines/build-template.yml
     parameters:
       arch: amd64
-      sonic_slave: sonic-slave-buster
+      sonic_slave: sonic-slave-stretch
       swss_common_artifact_name: sonic-swss-common
       sairedis_artifact_name: sonic-sairedis
       artifact_name: sonic-swss
@@ -30,7 +30,7 @@ stages:
       arch: armhf
       timeout: 240
       pool: sonicbld
-      sonic_slave: sonic-slave-buster-armhf
+      sonic_slave: sonic-slave-stretch-armhf
       swss_common_artifact_name: sonic-swss-common.armhf
       sairedis_artifact_name: sonic-sairedis.armhf
       artifact_name: sonic-swss.armhf
@@ -40,7 +40,7 @@ stages:
       arch: arm64
       timeout: 240
       pool: sonicbld
-      sonic_slave: sonic-slave-buster-arm64
+      sonic_slave: sonic-slave-stretch-arm64
       swss_common_artifact_name: sonic-swss-common.arm64
       sairedis_artifact_name: sonic-sairedis.arm64
       artifact_name: sonic-swss.arm64
