@@ -16,11 +16,13 @@ jobs:
 
   steps:
   - task: DownloadPipelineArtifact@2
+    condition: false
     inputs:
       artifact: docker-sonic-vs
     displayName: "Download docker sonic vs image"
 
   - task: DownloadPipelineArtifact@2
+    condition: false
     inputs:
       source: specific
       project: build
@@ -32,7 +34,7 @@ jobs:
 
   - script: |
       set -x
-      sudo .azure-pipelines/build_and_install_module.sh
+      sudo bash -x .azure-pipelines/build_and_install_module.sh
 
       sudo apt-get install -y libhiredis0.14
       sudo dpkg -i --force-confask,confnew ../libswsscommon_1.0.0_amd64.deb || apt-get install -f
