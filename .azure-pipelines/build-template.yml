@@ -96,7 +96,8 @@ jobs:
       path: '$(Build.SourcesDirectory)/${{ parameters.sairedis_artifact_name }}'
     displayName: "Download sonic sairedis deb packages"
   - task: DownloadPipelineArtifact@2
-    continueOnError: eq('${{ parameters.buildimage_pipeline }}', '141')
+    ${{ if eq(parameters.buildimage_pipeline, 141) }}:
+      continueOnError: True
     inputs:
       source: specific
       project: build
