@@ -107,8 +107,14 @@ jobs:
       runBranch: 'refs/heads/master'
       path: '$(Build.SourcesDirectory)/${{ parameters.buildimage_artifact_name }}'
     displayName: "Download sonic buildimage deb packages"
+  - script: |
+      buildimage_artifact_downloaded=n
+      [ -d "$(Build.SourcesDirectory)/${{ parameters.buildimage_artifact_name }}/target" ] && buildimage_artifact_downloaded=y
+      echo "##vso[task.setvariable variable=buildimage_artifact_downloaded]$buildimage_artifact_downloaded"
+    condition: eq('${{ parameters.buildimage_pipeline }}', '141')
+    displayName: "Check if sonic buildimage deb packages downloaded"
   - task: DownloadPipelineArtifact@2
-    condition: and(failed(), eq('${{ parameters.buildimage_pipeline }}', '141'))
+    condition: and(eq('$(buildimage_artifact_downloaded)', 'n'), eq('${{ parameters.buildimage_pipeline }}', '141'))
     inputs:
       source: specific
       project: build
