@@ -96,6 +96,7 @@ jobs:
       path: '$(Build.SourcesDirectory)/${{ parameters.sairedis_artifact_name }}'
     displayName: "Download sonic sairedis deb packages"
   - task: DownloadPipelineArtifact@2
+    continueOnError: eq(${{ parameters.buildimage_pipeline }}, 141)
     inputs:
       source: specific
       project: build
@@ -105,6 +106,16 @@ jobs:
       runBranch: 'refs/heads/master'
       path: '$(Build.SourcesDirectory)/${{ parameters.buildimage_artifact_name }}'
     displayName: "Download sonic buildimage deb packages"
+  - task: DownloadPipelineArtifact@2
+    condition: and(failed(), eq(${{ parameters.buildimage_pipeline }}, 141))
+    inputs:
+      source: specific
+      project: build
+      pipeline: ${{ parameters.buildimage_pipeline }}
+      artifact: 'sonic-buildimage.marvell-armhf1'
+      runId: 63911
+      path: '$(Build.SourcesDirectory)/${{ parameters.buildimage_artifact_name }}'
+    displayName: "Download sonic buildimage deb packages from 63911"
   - script: |
       cd $(Build.SourcesDirectory)/${{ parameters.buildimage_artifact_name }}
       sudo dpkg -i target/debs/buster/libnl-3-200_*.deb
