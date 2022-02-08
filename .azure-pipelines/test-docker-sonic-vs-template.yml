@@ -21,7 +21,7 @@ jobs:
   displayName: vstest
   timeoutInMinutes: ${{ parameters.timeout }}
 
-  pool: sonic-test
+  pool: sonictest
 
   steps:
   - task: DownloadPipelineArtifact@2
