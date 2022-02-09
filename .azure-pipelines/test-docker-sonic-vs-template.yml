@@ -24,6 +24,10 @@ jobs:
   pool: sonic-common
 
   steps:
+  - script: |
+      sudo rm -rf s
+    displayName: "Init source folder"
+  - checkout: self
   - task: DownloadPipelineArtifact@2
     inputs:
       artifact: docker-sonic-vs
