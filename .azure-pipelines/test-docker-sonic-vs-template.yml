@@ -25,7 +25,7 @@ jobs:
 
   steps:
   - script: |
-      sudo rm -rf $(ls -A1)
+      ls -A1 | xargs -I{} sudo rm -rf {}
     displayName: "Clean workspace"
   - checkout: self
   - task: DownloadPipelineArtifact@2
