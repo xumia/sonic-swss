@@ -25,8 +25,8 @@ jobs:
 
   steps:
   - script: |
-      sudo rm -rf s
-    displayName: "Init source folder"
+      sudo rm -rf $(ls -A1)
+    displayName: "Clean workspace"
   - checkout: self
   - task: DownloadPipelineArtifact@2
     inputs:
