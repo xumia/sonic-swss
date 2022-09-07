@@ -1,0 +1,17 @@
+# This workflow is to do the bandit check
+#
+
+name: bandit
+on:
+  pull_request_target:
+    types:
+    - opened
+    - reopened
+    - synchronize
+
+jobs:
+  bendit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: bandit
+      uses: jpetrucciani/bandit-check@master
