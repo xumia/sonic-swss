@@ -60,7 +60,11 @@ jobs:
   steps:
   - checkout: self
     clean: true
+    path: s
     submodules: true
+  - checkout: sonic-swss-common
+    clean: true
+    path: $(Agent.BuildDirector)/sonic-swss-common
   - script: |
       sudo apt-get update
       sudo apt-get install -y libhiredis0.14 libhiredis-dev
@@ -72,20 +76,16 @@ jobs:
       sudo apt-get install -y libteam-dev \
           libteam5 \
           libteamdctl0
+      sudo apt-get install -y libnl-3-dev libnl-genl-3-dev libnl-route-3-dev libnl-nf-3-dev
     displayName: "Install dependencies"
-  - task: DownloadPipelineArtifact@2
-    inputs:
-      source: specific
-      project: build
-      pipeline: Azure.sonic-swss-common
-      artifact: ${{ parameters.swss_common_artifact_name }}
-      runVersion: 'latestFromBranch'
-      runBranch: 'refs/heads/$(BUILD_BRANCH)'
-      path: $(Build.ArtifactStagingDirectory)/download
-      patterns: |
-        libswsscommon_1.0.0_${{ parameters.arch }}.deb
-        libswsscommon-dev_1.0.0_${{ parameters.arch }}.deb
-    displayName: "Download sonic swss common deb packages"
+  - script: |
+      set -ex
+      git checkout $(BUILD_BRANCH)
+      ./autogen.sh
+      dpkg-buildpackage -us -uc -b -j$(nproc)
+      sudo dpkg -i **/libswsscommon_*.deb
+    workingDirectory: $(Agent.BuildDirector)/sonic-swss-common 
+    displayName: "Build and isntall sonic-swss-common"
   - task: DownloadPipelineArtifact@2
     inputs:
       source: specific
