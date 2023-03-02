@@ -139,9 +139,11 @@ jobs:
       fi
       ./autogen.sh
       dpkg-buildpackage -us -uc -b -j$(nproc)
+      mkdir artifacts
+      cp ../*.deb artifacts/
     workingDirectory: $(System.DefaultWorkingDirectory)/sonic-swss
     displayName: "Compile sonic swss"
-  - publish: $(System.DefaultWorkingDirectory)/
+  - publish: $(System.DefaultWorkingDirectory)/sonic-swss/artifacts/
     artifact: ${{ parameters.artifact_name }}
     displayName: "Archive swss debian packages"
   - publish: $(Build.ArtifactStagingDirectory)/
