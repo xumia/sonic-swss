@@ -60,11 +60,9 @@ jobs:
   steps:
   - checkout: self
     clean: true
-    path: s
     submodules: true
   - checkout: sonic-swss-common
     clean: true
-    path: $(Agent.BuildDirectory)/sonic-swss-common
   - script: |
       sudo apt-get update
       sudo apt-get install -y libhiredis0.14 libhiredis-dev
@@ -84,7 +82,7 @@ jobs:
       ./autogen.sh
       dpkg-buildpackage -us -uc -b -j$(nproc)
       sudo dpkg -i **/libswsscommon_*.deb
-    workingDirectory: $(Agent.BuildDirectory)/sonic-swss-common 
+    workingDirectory: $(Build.SourcesDirectory)/sonic-swss-common 
     displayName: "Build and isntall sonic-swss-common"
   - task: DownloadPipelineArtifact@2
     inputs:
