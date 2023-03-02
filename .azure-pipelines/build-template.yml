@@ -81,7 +81,7 @@ jobs:
       git checkout $(BUILD_BRANCH)
       ./autogen.sh
       dpkg-buildpackage -us -uc -b -j$(nproc)
-      sudo dpkg -i "**/libswsscommon*.deb"
+      sudo dpkg -i ../libswsscommon*.deb
     workingDirectory: $(Build.SourcesDirectory)/sonic-swss-common 
     displayName: "Build and isntall sonic-swss-common"
   - task: DownloadPipelineArtifact@2
