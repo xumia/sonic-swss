@@ -55,6 +55,7 @@ jobs:
   - checkout: self
   - task: DownloadPipelineArtifact@2
     inputs:
+      project: build
       buildType: specific
       buildVersionToDownload: specific
       artifact: ${{ parameters.docker_sonic_vs_name }}
