@@ -102,6 +102,8 @@ jobs:
   - script: |
       set -ex
       sudo docker load -i $(Build.ArtifactStagingDirectory)/download/docker-sonic-vs.gz
+      docker images
+      docker tag docker-sonic-vs:$(docker images | grep docker-sonic-vs | tail -n 1 | awk '{print $2}') docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }}
       docker ps
       ip netns list
       uname -a
