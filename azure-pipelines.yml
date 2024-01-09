@@ -36,8 +36,6 @@ variables:
 
 stages:
 - stage: Test
-  dependsOn: BuildDocker
-  condition: succeeded('BuildDocker')
   jobs:
   - template: .azure-pipelines/test-docker-sonic-vs-template-test.yml
     parameters:
