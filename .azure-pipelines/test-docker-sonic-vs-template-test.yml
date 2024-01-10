@@ -59,7 +59,7 @@ jobs:
       buildType: specific
       buildVersionToDownload: specific
       artifact: ${{ parameters.docker_sonic_vs_name }}
-      pipelineId: 450622
+      pipelineId: 451767
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download pre-stage built ${{ parameters.docker_sonic_vs_name }}"
   - task: DownloadPipelineArtifact@2
@@ -129,6 +129,8 @@ jobs:
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
       fi
 
+      sleep 72000
+
       test_set=()
       # Run 20 tests as a set.
       for test in ${all_tests}; do
@@ -155,8 +157,6 @@ jobs:
           docker rm $(docker ps -q -a)
         fi
       fi
-
-      sleep 72000
 
       rm -rf $(Build.ArtifactStagingDirectory)/download
     displayName: "Run vs tests"
