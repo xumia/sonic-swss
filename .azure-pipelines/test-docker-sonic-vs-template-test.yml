@@ -59,7 +59,7 @@ jobs:
       buildType: specific
       buildVersionToDownload: specific
       artifact: ${{ parameters.docker_sonic_vs_name }}
-      pipelineId: 451767
+      pipelineId: 452397
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download pre-stage built ${{ parameters.docker_sonic_vs_name }}"
   - task: DownloadPipelineArtifact@2
