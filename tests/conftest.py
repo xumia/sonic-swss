@@ -81,11 +81,6 @@ def pytest_addoption(parser):
                      default=None,
                      help="Namespace for the Virtual Chassis Topology")
 
-    parser.addoption("--mounts",
-                     action="store",
-                     default=None,
-                     help="Mount options of the container")
-
     parser.addoption("--topo",
                      action="store",
                      default=None,
@@ -399,7 +394,7 @@ class DockerVirtualSwitch:
             vols = {self.mount: {"bind": "/var/run/redis", "mode": "rw"}}
             if ctnmounts:
                 for k, v in ctnmounts.items():
-                    vols[k] = {"bind": v, "mode": "rw"}
+                    vols[k] = v
             kwargs["volumes"] = vols
 
             # create virtual switch container
@@ -1405,8 +1400,7 @@ class DockerVirtualChassisTopology:
         log_path=None,
         max_cpu=2,
         forcedvs=None,
-        topoFile=None,
-        ctnmounts=None
+        topoFile=None
     ):
         self.ns = namespace
         self.chassbr = "br4chs"
@@ -1576,8 +1570,6 @@ class DockerVirtualChassisTopology:
             ctnname = defcfg["hostname"] + "." + self.ns
             vol = {}
             vol[chassis_config_dir] = {"bind": "/usr/share/sonic/virtual_chassis", "mode": "ro"}
-            if self.ctnmounts:
-               vol.update(self.ctnmounts)
 
             # pass self.ns into the vs to be use for vs restarts by swss conftest.
             # connection to chassbr is setup by chassis_connect.py within the vs
@@ -1767,12 +1759,6 @@ def manage_dvs(request) -> str:
     buffer_model = request.config.getoption("--buffer_model")
     force_recreate = request.config.getoption("--force-recreate-dvs")
     graceful_stop = request.config.getoption("--graceful-stop")
-    mounts = request.config.getoption("--mounts")
-    ctnmounts = {}
-    if mounts:
-        for mount in mounts.split("|"):
-            items = mount.split(":")
-            ctnmounts[items[0]] = items[1]
 
     dvs = None
     curr_dvs_env = [] # lgtm[py/unused-local-variable]
@@ -1804,7 +1790,7 @@ def manage_dvs(request) -> str:
                 dvs.get_logs()
                 dvs.destroy()
 
-            dvs = DockerVirtualSwitch(name, imgname, keeptb, new_dvs_env, log_path, max_cpu, forcedvs, buffer_model = buffer_model, ctnmounts=ctnmounts)
+            dvs = DockerVirtualSwitch(name, imgname, keeptb, new_dvs_env, log_path, max_cpu, forcedvs, buffer_model = buffer_model)
 
             curr_dvs_env = new_dvs_env
 
@@ -1853,19 +1839,13 @@ def vst(request):
     keeptb = request.config.getoption("--keeptb")
     imgname = request.config.getoption("--imgname")
     max_cpu = request.config.getoption("--max_cpu")
-    mounts = request.config.getoption("--mounts")
     log_path = vctns if vctns else request.module.__name__
     dvs_env = getattr(request.module, "DVS_ENV", [])
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_supervisor.json"
-    ctnmounts = {}
-    if mounts:
-        for mount in mounts.split("|"):
-            items = mount.split(":")
-            ctnmounts[items[0]] = items[1]
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
-                                       forcedvs, topo, ctnmounts)
+                                       forcedvs, topo)
     yield vct
     vct.get_logs(request.module.__name__)
     vct.destroy()
@@ -1878,19 +1858,13 @@ def vct(request):
     keeptb = request.config.getoption("--keeptb")
     imgname = request.config.getoption("--imgname")
     max_cpu = request.config.getoption("--max_cpu")
-    mounts = request.config.getoption("--mounts")
     log_path = vctns if vctns else request.module.__name__
     dvs_env = getattr(request.module, "DVS_ENV", [])
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_with_ecmp_neighbors.json"
-    ctnmounts = {}
-    if mounts:
-        for mount in mounts.split("|"):
-            items = mount.split(":")
-            ctnmounts[items[0]] = items[1]
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
-                                       forcedvs, topo, ctnmounts)
+                                       forcedvs, topo)
     yield vct
     vct.get_logs(request.module.__name__)
     vct.destroy()
