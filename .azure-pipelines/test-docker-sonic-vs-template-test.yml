@@ -113,7 +113,7 @@ jobs:
 
       params=""
       if [ '${{ parameters.archive_gcov }}' == True ]; then
-        params=" ${params} --keeptb "
+        params=" ${params}  --collect-coverage "
       fi
       if [ '${{ parameters.asan }}' == True ]; then
         params=" ${params} --graceful-stop "
@@ -129,13 +129,7 @@ jobs:
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
       fi
 
-      echo $all_tests | xargs -n 1 | xargs -P 4 -I TEST_MODULE sudo sh -c 'py.test -v --force-flaky --junitxml="$(echo TEST_MODULE | cut -d "." -f1)_tr.xml" --keeptb --imgname=docker-sonic-vs:Azure.sonic-swss.20240111.2.asan-False TEST_MODULE
-      for container in $(docker ps | grep docker-sonic-vs | awk '{print $1}'); do
-        echo "collecting the container $container ..."
-        docker exec $container bash -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info' 2>&1 | grep -v libswsscommon | grep -v sonic_db_cli | grep -v pyext_py3__swsscommon_la
-        docker cp $container:/tmp/coverage.info $container.coverage.info
-      done
-
+      echo $all_tests | xargs -n 1 | xargs -P $(nproc) -I TEST_MODULE sudo sh -c 'py.test -v --force-flaky --junitxml="$(echo TEST_MODULE | cut -d "." -f1)_tr.xml" '"$params --imgname=docker-sonic-vs:Azure.sonic-swss.20240111.2.asan-False TEST_MODULE"
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./
       docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
       cp coverage.xml $(Build.ArtifactStagingDirectory)/

@@ -102,6 +102,11 @@ def pytest_addoption(parser):
                      type=int,
                      help="number of ports")
 
+    parser.addoption("--collect-coverage",
+                     action="store_true",
+                     default=False,
+                     help="Collect the test coverage information")
+
 
 def random_string(size=4, chars=string.ascii_uppercase + string.digits):
     return "".join(random.choice(chars) for x in range(size))
@@ -1759,6 +1764,7 @@ def manage_dvs(request) -> str:
     buffer_model = request.config.getoption("--buffer_model")
     force_recreate = request.config.getoption("--force-recreate-dvs")
     graceful_stop = request.config.getoption("--graceful-stop")
+    collect_coverage = request.config.getoption("--collect-coverage")
 
     dvs = None
     curr_dvs_env = [] # lgtm[py/unused-local-variable]
@@ -1811,6 +1817,21 @@ def manage_dvs(request) -> str:
     if graceful_stop:
         dvs.stop_swss()
         dvs.stop_syncd()
+
+    if collect_coverage:
+        # Generate the converage info by lcov and copy to the host
+        cmd = f"docker exec {dvs.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
+        rc, output = subprocess.getstatusoutput(cmd)
+        if rc:
+            raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
+        coverage_info_name = dvs.ctn.short_id + '.coverage.info'
+        if name:
+            coverage_info_name = name + '.coverage.info'
+        cmd = f"docker cp {dvs.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
+        rc, output = subprocess.getstatusoutput(cmd)
+        if rc:
+            raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
+
     dvs.get_logs()
     dvs.destroy()
 
