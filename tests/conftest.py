@@ -1814,11 +1814,12 @@ def manage_dvs(request) -> str:
 
     yield update_dvs
 
-    if graceful_stop:
-        dvs.stop_swss()
-        dvs.stop_syncd()
-
     if collect_coverage:
+        cmd = " --help;".join(dvs.swssd)
+        rc, output = subprocess.getstatusoutput(cmd)
+        time.sleep(1)
+        dvs.runcmd('killall5 -10')
+        time.sleep(1)
         # Generate the converage info by lcov and copy to the host
         cmd = f"docker exec {dvs.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
         rc, output = subprocess.getstatusoutput(cmd)
@@ -1831,6 +1832,10 @@ def manage_dvs(request) -> str:
         rc, output = subprocess.getstatusoutput(cmd)
         if rc:
             raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
+
+    if graceful_stop:
+        dvs.stop_swss()
+        dvs.stop_syncd()
 
     dvs.get_logs()
     dvs.destroy()
