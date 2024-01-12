@@ -59,7 +59,7 @@ jobs:
       buildType: specific
       buildVersionToDownload: specific
       artifact: ${{ parameters.docker_sonic_vs_name }}
-      pipelineId: 452397
+      pipelineId: 452843
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download pre-stage built ${{ parameters.docker_sonic_vs_name }}"
   - task: DownloadPipelineArtifact@2
@@ -129,38 +129,33 @@ jobs:
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
       fi
 
-      sleep 72000
-
-      test_set=()
-      # Run 20 tests as a set.
-      for test in ${all_tests}; do
-        test_set+=("${test}")
-        if [ ${#test_set[@]} -ge 20 ]; then
-          test_name=$(echo "${test_set[0]}" | cut -d "." -f 1)
-          echo "${test_set[*]}" | xargs sudo py.test -v --force-flaky --junitxml="${test_name}_tr.xml" $params --imgname=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }}
-          container_count=$(docker ps -q -a | wc -l)
-          if [ '${{ parameters.archive_gcov }}' == True ] && [ ${container_count} -gt 0 ]; then
-            ./gcov_support.sh set_environment $(Build.ArtifactStagingDirectory)
-            docker stop $(docker ps -q -a)
-            docker rm $(docker ps -q -a)
-          fi
-          test_set=()
-        fi
+      echo $all_tests | xargs -n 1 | xargs -P 4 -I TEST_MODULE sudo sh -c 'py.test -v --force-flaky --junitxml="$(echo TEST_MODULE | cut -d "." -f1)_tr.xml" --keeptb --imgname=docker-sonic-vs:Azure.sonic-swss.20240111.2.asan-False TEST_MODULE
+      for container in $(docker ps | grep docker-sonic-vs | awk '{print $1}'); do
+        echo "collecting the container $container ..."
+        docker exec $container bash -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info' 2>&1 | grep -v libswsscommon | grep -v sonic_db_cli | grep -v pyext_py3__swsscommon_la
+        docker cp $container:/tmp/coverage.info $container.coverage.info
       done
-      if [ ${#test_set[@]} -gt 0 ]; then
-        test_name=$(echo "${test_set[0]}" | cut -d "." -f 1)
-        echo "${test_set[*]}" | xargs sudo py.test -v $params --force-flaky --junitxml="${test_name}_tr.xml" $params --imgname=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }}
-        container_count=$(docker ps -q -a | wc -l)
-        if [ '${{ parameters.archive_gcov }}' == True ] && [ ${container_count} -gt 0 ]; then
-          ./gcov_support.sh set_environment $(Build.ArtifactStagingDirectory)
-          docker stop $(docker ps -q -a)
-          docker rm $(docker ps -q -a)
-        fi
-      fi
+
+      cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./
+      docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
+      cp coverage.xml $(Build.ArtifactStagingDirectory)/
+      cp *coverage.info $(Build.ArtifactStagingDirectory)/
 
       rm -rf $(Build.ArtifactStagingDirectory)/download
     displayName: "Run vs tests"
     continueOnError: ${{ parameters.asan }}
+
+  - task: PublishCodeCoverageResults@1
+    inputs:
+      codeCoverageTool: Cobertura
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/test/coverage.xml'
+      reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
+    displayName: 'Publish test coverage'
+
+  - script:
+      sleep 72000
+    condition: true
+    displayName: "Sleep 72000"
 
   - task: PublishTestResults@2
     inputs:
