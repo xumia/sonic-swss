@@ -139,6 +139,7 @@ jobs:
       docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
       docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/tests/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml; genhtml coverage.info -o /tmp/s/htmlcov/'
+      sudo chown $USER:$(id -ng) htmlcov -R
       cp coverage.xml $(Build.ArtifactStagingDirectory)/
       cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/
       rm -rf $(Build.ArtifactStagingDirectory)/download
