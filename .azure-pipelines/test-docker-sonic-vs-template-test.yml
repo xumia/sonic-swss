@@ -138,7 +138,7 @@ jobs:
       image_name=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }}
       docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
-      docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/tests/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
+      docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/tests/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml; genhtml coverage.info -o /tmp/s/htmlcov/'
       cp coverage.xml $(Build.ArtifactStagingDirectory)/
       cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/
       rm -rf $(Build.ArtifactStagingDirectory)/download
@@ -150,6 +150,7 @@ jobs:
     inputs:
       codeCoverageTool: Cobertura
       summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+      reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
     displayName: 'Publish test coverage'
 
   - script:
