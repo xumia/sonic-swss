@@ -129,7 +129,7 @@ jobs:
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
       fi
 
-      echo $all_tests | xargs -n 1 | xargs -P 2 -I TEST_MODULE sudo sh -c 'py.test -v --force-flaky --junitxml="$(echo TEST_MODULE | cut -d "." -f1)_tr.xml" '"$params --imgname=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }} TEST_MODULE"
+      echo $all_tests | xargs -n 1 | xargs -P 4 -I TEST_MODULE sudo sh -c 'py.test -v --force-flaky --junitxml="$(echo TEST_MODULE | cut -d "." -f1)_tr.xml" '"$params --imgname=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }} TEST_MODULE"
     displayName: "Run vs tests"
     continueOnError: ${{ parameters.asan }}
 
@@ -140,7 +140,7 @@ jobs:
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
       docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/tests/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
       cp coverage.xml $(Build.ArtifactStagingDirectory)/
-      cp *coverage.info $(Build.ArtifactStagingDirectory)/
+      cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/
       rm -rf $(Build.ArtifactStagingDirectory)/download
     condition: true
     displayName: "Collect coverage.xml"
@@ -149,7 +149,7 @@ jobs:
     condition: true
     inputs:
       codeCoverageTool: Cobertura
-      summaryFileLocation: '$(System.DefaultWorkingDirectory)/test/coverage.xml'
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
       reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
     displayName: 'Publish test coverage'
 
