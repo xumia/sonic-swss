@@ -33,7 +33,7 @@ ifeq ($(ENABLE_ASAN), y)
 endif
 
 ifeq ($(ENABLE_GCOV), y)
-	configure_opts += --enable-gcov --enable-code-coverage --enable-debug "
+	configure_opts += --enable-gcov --enable-code-coverage --enable-debug
 endif
 
 override_dh_auto_configure:
