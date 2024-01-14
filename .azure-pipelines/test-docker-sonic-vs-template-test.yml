@@ -59,7 +59,7 @@ jobs:
       buildType: specific
       buildVersionToDownload: specific
       artifact: ${{ parameters.docker_sonic_vs_name }}
-      pipelineId: 453533
+      pipelineId: 454579
       path: $(Build.ArtifactStagingDirectory)/download
     displayName: "Download pre-stage built ${{ parameters.docker_sonic_vs_name }}"
   - task: DownloadPipelineArtifact@2
@@ -133,7 +133,8 @@ jobs:
 
       all_tests=$(ls test_*.py)
       all_tests="${all_tests} p4rt"
-      all_tests=$(ls test_*.py | head -n 10)
+      all_tests=$(ls test_*.py | head -n 10 | xargs)
+      all_tests="test_fabric.py test_fabric_port.py"
 
       if [ -n '${{ parameters.run_tests_pattern }}' ]; then
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
