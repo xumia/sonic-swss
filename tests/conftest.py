@@ -102,6 +102,11 @@ def pytest_addoption(parser):
                      type=int,
                      help="number of ports")
 
+    parser.addoption("--collect-coverage",
+                     action="store_true",
+                     default=False,
+                     help="Collect the test coverage information")
+
 
 def random_string(size=4, chars=string.ascii_uppercase + string.digits):
     return "".join(random.choice(chars) for x in range(size))
@@ -1795,6 +1800,10 @@ def manage_dvs(request) -> str:
             curr_dvs_env = new_dvs_env
 
         else:
+            # Workaround to generate GCDA files for GCov
+            cmd = " --help;".join(dvs.swssd)
+            subprocess.getstatusoutput(cmd)
+            time.sleep(1)
             # First generate GCDA files for GCov
             dvs.runcmd('killall5 -15')
             # If not re-creating the DVS, restart container
@@ -1807,6 +1816,25 @@ def manage_dvs(request) -> str:
         return dvs
 
     yield update_dvs
+
+    if collect_coverage:
+        cmd = " --help;".join(dvs.swssd)
+        subprocess.getstatusoutput(cmd)
+        time.sleep(1)
+        dvs.runcmd('killall5 -10')
+        time.sleep(1)
+        # Generate the converage info by lcov and copy to the host
+        cmd = f"docker exec {dvs.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
+        rc, output = subprocess.getstatusoutput(cmd)
+        if rc:
+            raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
+        coverage_info_name = dvs.ctn.short_id + '.coverage.info'
+        if name:
+            coverage_info_name = name + '.coverage.info'
+        cmd = f"docker cp {dvs.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
+        rc, output = subprocess.getstatusoutput(cmd)
+        if rc:
+            raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
 
     if graceful_stop:
         dvs.stop_swss()

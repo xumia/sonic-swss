@@ -1,2 +1,4 @@
 **/*
 !*.deb
+!coverage.info
+!build.info

@@ -137,8 +137,8 @@ stages:
       asan: true
 
 - stage: Gcov
+  condition: false
   dependsOn: Test
-  condition: in(dependencies.Test.result, 'Succeeded', 'SucceededWithIssues')
   jobs:
   - template: .azure-pipelines/gcov.yml
     parameters:

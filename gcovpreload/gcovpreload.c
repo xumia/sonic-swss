@@ -27,7 +27,7 @@ void ctor()
     int sigs[] = {
         SIGILL, SIGFPE, SIGABRT, SIGBUS,
         SIGSEGV, SIGHUP, SIGINT, SIGQUIT,
-        SIGTERM
+        SIGTERM, SIGKILL, SIGUSR1
     };
     int i;
     struct sigaction sa;
