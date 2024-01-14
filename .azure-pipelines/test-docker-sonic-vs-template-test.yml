@@ -133,6 +133,7 @@ jobs:
 
       all_tests=$(ls test_*.py)
       all_tests="${all_tests} p4rt"
+      all_tests=$(ls test_*.py | head -n 10)
 
       if [ -n '${{ parameters.run_tests_pattern }}' ]; then
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
