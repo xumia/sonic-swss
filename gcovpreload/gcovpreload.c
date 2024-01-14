@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <signal.h>
-#define SIMPLE_WAY
 
 void sighandler(int signo)
 {
