@@ -84,6 +84,15 @@ jobs:
     displayName: "Download sonic buildimage ubuntu20.04 deb packages"
 
   - script: |
+        set -ex
+        # Install .NET CORE
+        curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+        sudo apt-add-repository https://packages.microsoft.com/debian/11/prod
+        sudo apt-get update
+        sudo apt-get install -y dotnet-sdk-7.0
+    displayName: "Install .NET CORE"
+
+  - script: |
       set -ex
       sudo .azure-pipelines/build_and_install_module.sh
 
@@ -151,7 +160,7 @@ jobs:
     inputs:
       codeCoverageTool: Cobertura
       summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
-      reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
+      #reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
     displayName: 'Publish test coverage'
 
   - script:
