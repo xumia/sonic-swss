@@ -1764,6 +1764,7 @@ def manage_dvs(request) -> str:
     buffer_model = request.config.getoption("--buffer_model")
     force_recreate = request.config.getoption("--force-recreate-dvs")
     graceful_stop = request.config.getoption("--graceful-stop")
+    collect_coverage = request.config.getoption("--collect-coverage")
 
     dvs = None
     curr_dvs_env = [] # lgtm[py/unused-local-variable]
