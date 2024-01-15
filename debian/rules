@@ -49,5 +49,7 @@ ifeq ($(ENABLE_GCOV), y)
 endif
 
 override_dh_strip:
+ifneq ($(ENABLE_GCOV), y)
 	dh_strip --dbg-package=swss-dbg
+endif
 
