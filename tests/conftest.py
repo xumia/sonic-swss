@@ -1818,7 +1818,7 @@ def manage_dvs(request) -> str:
     yield update_dvs
 
     if collect_coverage:
-        cmd = " --help;".join(dvs.swssd)
+        cmd = "docker exec {dvs.ctn.short_id} sh -c '" + " -h;".join(dvs.swssd) + "'"
         subprocess.getstatusoutput(cmd)
         time.sleep(1)
         dvs.runcmd('killall5 -10')
