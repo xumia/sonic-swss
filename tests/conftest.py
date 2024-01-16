@@ -451,10 +451,20 @@ class DockerVirtualSwitch:
     def destroy(self) -> None:
         self.del_appl_db()
 
-        import pdb; pdb.set_trace()
         if self.collect_coverage:
+            # Generate the gcda files
             self.runcmd('killall5 -15')
             time.sleep(1)
+
+        # In case persistent dvs was used removed all the extra server link
+        # that were created
+        if self.persistent:
+            self.destroy_servers()
+
+        # Stop the services to reduce the CPU comsuption
+        self.runcmd('supervisorctl stop all')
+
+        if self.collect_coverage:
             # Generate the converage info by lcov and copy to the host
             cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
             rc, output = subprocess.getstatusoutput(cmd)
@@ -467,12 +477,6 @@ class DockerVirtualSwitch:
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
                 raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
-
-
-        # In case persistent dvs was used removed all the extra server link
-        # that were created
-        if self.persistent:
-            self.destroy_servers()
 
         # persistent and clean-up flag are mutually exclusive
         elif self.cleanup:
@@ -1877,11 +1881,9 @@ def vst(request):
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_supervisor.json"
-    import pdb; pdb.set_trace()
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
                                        forcedvs, topo, collect_coverage)
     yield vct
-    import pdb; pdb.set_trace()
     vct.get_logs(request.module.__name__)
     vct.destroy()
 
@@ -1899,11 +1901,9 @@ def vct(request):
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_with_ecmp_neighbors.json"
-    import pdb; pdb.set_trace()
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
                                        forcedvs, topo, collect_coverage)
     yield vct
-    import pdb; pdb.set_trace()
     vct.get_logs(request.module.__name__)
     vct.destroy()
 
