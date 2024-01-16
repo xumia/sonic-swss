@@ -452,7 +452,7 @@ class DockerVirtualSwitch:
         self.del_appl_db()
 
         import pdb; pdb.set_trace()
-        if collect_coverage:
+        if self.collect_coverage:
             self.runcmd('killall5 -15')
             time.sleep(1)
             # Generate the converage info by lcov and copy to the host
@@ -1564,6 +1564,8 @@ class DockerVirtualChassisTopology:
 
     def destroy(self):
         self.verify_vct()
+        for dv in self.dvss.values():
+            dv.destroy()
         if self.keeptb:
             return
         self.oper = "delete"
@@ -1875,9 +1877,11 @@ def vst(request):
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_supervisor.json"
+    import pdb; pdb.set_trace()
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
                                        forcedvs, topo, collect_coverage)
     yield vct
+    import pdb; pdb.set_trace()
     vct.get_logs(request.module.__name__)
     vct.destroy()
 
