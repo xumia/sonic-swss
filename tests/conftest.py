@@ -405,7 +405,6 @@ class DockerVirtualSwitch:
             kwargs["volumes"] = vols
 
             # create virtual switch container
-            import pdb; pdb.set_trace()
             self.ctn = self.client.containers.run(imgname,
                                                   privileged=True,
                                                   detach=True,
@@ -452,18 +451,19 @@ class DockerVirtualSwitch:
     def destroy(self) -> None:
         self.del_appl_db()
 
+        import pdb; pdb.set_trace()
         if collect_coverage:
-            dvs.runcmd('killall5 -15')
+            self.runcmd('killall5 -15')
             time.sleep(1)
             # Generate the converage info by lcov and copy to the host
-            cmd = f"docker exec {dvs.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
+            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
                 raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
-            coverage_info_name = dvs.ctn.short_id + '.coverage.info'
+            coverage_info_name = self.ctn.short_id + '.coverage.info'
             if name:
                 coverage_info_name = name + '.coverage.info'
-            cmd = f"docker cp {dvs.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
+            cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
                 raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
@@ -1547,7 +1547,6 @@ class DockerVirtualChassisTopology:
             self.handle_bridge(self.chassbr)
 
             for ctndir in ctn:
-                import pdb; pdb.set_trace()
                 self.create_vct_ctn(ctndir)
             if "neighbor_connections" in self.virt_topo:
                 self.handle_neighconn()
@@ -1860,7 +1859,6 @@ def dvs(request, manage_dvs) -> DockerVirtualSwitch:
     name = request.config.getoption("--dvsname")
     log_path = name if name else request.module.__name__
 
-    import pdb; pdb.set_trace()
     return manage_dvs(log_path, dvs_env)
 
 @pytest.yield_fixture(scope="module")
@@ -1877,7 +1875,6 @@ def vst(request):
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_supervisor.json"
-    import pdb; pdb.set_trace()
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
                                        forcedvs, topo, collect_coverage)
     yield vct
@@ -1898,10 +1895,11 @@ def vct(request):
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_with_ecmp_neighbors.json"
+    import pdb; pdb.set_trace()
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
                                        forcedvs, topo, collect_coverage)
-    import pdb; pdb.set_trace()
     yield vct
+    import pdb; pdb.set_trace()
     vct.get_logs(request.module.__name__)
     vct.destroy()
 
