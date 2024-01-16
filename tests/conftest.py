@@ -471,8 +471,6 @@ class DockerVirtualSwitch:
             if rc:
                 raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
             coverage_info_name = self.ctn.short_id + '.coverage.info'
-            if name:
-                coverage_info_name = name + '.coverage.info'
             cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
