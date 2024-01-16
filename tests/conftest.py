@@ -456,7 +456,7 @@ class DockerVirtualSwitch:
             self.runcmd('killall5 -15')
             time.sleep(1)
             # Generate the converage info by lcov and copy to the host
-            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
+            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
                 raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
