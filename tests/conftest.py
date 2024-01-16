@@ -288,6 +288,7 @@ class DockerVirtualSwitch:
         newctnname: str = None,
         ctnmounts: Dict[str, str] = None,
         buffer_model: str = None,
+        collect_coverage: bool = False
     ):
         self.basicd = ["redis-server", "rsyslogd"]
         self.swssd = [
@@ -309,6 +310,7 @@ class DockerVirtualSwitch:
         self.dvsname = name
         self.vct = vct
         self.ctn = None
+        self.collect_coverage = collect_coverage
 
         self.cleanup = not keeptb
 
@@ -448,6 +450,23 @@ class DockerVirtualSwitch:
 
     def destroy(self) -> None:
         self.del_appl_db()
+
+        if self.collect_coverage:
+            self.runcmd('killall5 -15')
+            time.sleep(1)
+            # Generate the converage info by lcov and copy to the host
+            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
+            rc, output = subprocess.getstatusoutput(cmd)
+            if rc:
+                raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
+            coverage_info_name = self.ctn.short_id + '.coverage.info'
+            if name:
+                coverage_info_name = name + '.coverage.info'
+            cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
+            rc, output = subprocess.getstatusoutput(cmd)
+            if rc:
+                raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
+
 
         # In case persistent dvs was used removed all the extra server link
         # that were created
@@ -1405,7 +1424,8 @@ class DockerVirtualChassisTopology:
         log_path=None,
         max_cpu=2,
         forcedvs=None,
-        topoFile=None
+        topoFile=None,
+        collect_coverage=False,
     ):
         self.ns = namespace
         self.chassbr = "br4chs"
@@ -1419,6 +1439,7 @@ class DockerVirtualChassisTopology:
         self.log_path = log_path
         self.max_cpu = max_cpu
         self.forcedvs = forcedvs
+        self.collect_coverage = collect_coverage
 
         if self.ns is None:
             self.ns = random_string()
@@ -1471,7 +1492,7 @@ class DockerVirtualChassisTopology:
                 self.dvss[ctn.name] = DockerVirtualSwitch(ctn.name, self.imgname, self.keeptb,
                                                           self.env, log_path=ctn.name,
                                                           max_cpu=self.max_cpu, forcedvs=self.forcedvs,
-                                                          vct=self)
+                                                          vct=self, collect_coverage=self.collect_coverage)
         if self.chassbr is None and len(self.dvss) > 0:
             ret, res = self.ctn_runcmd(self.dvss.values()[0].ctn,
                                        "sonic-cfggen --print-data -j /usr/share/sonic/virtual_chassis/vct_connections.json")
@@ -1542,6 +1563,8 @@ class DockerVirtualChassisTopology:
 
     def destroy(self):
         self.verify_vct()
+        for dv in self.dvss.values():
+            dv.destroy()
         if self.keeptb:
             return
         self.oper = "delete"
@@ -1592,7 +1615,8 @@ class DockerVirtualChassisTopology:
                                                          max_cpu=self.max_cpu,
                                                          forcedvs=self.forcedvs,
                                                          vct=self,newctnname=ctnname,
-                                                         ctnmounts=vol)
+                                                         ctnmounts=vol,
+                                                         collect_coverage=self.collect_coverage)
             self.set_ctninfo(ctndir, ctnname, self.dvss[ctnname].pid)
         return
 
@@ -1796,7 +1820,7 @@ def manage_dvs(request) -> str:
                 dvs.get_logs()
                 dvs.destroy()
 
-            dvs = DockerVirtualSwitch(name, imgname, keeptb, new_dvs_env, log_path, max_cpu, forcedvs, buffer_model = buffer_model)
+            dvs = DockerVirtualSwitch(name, imgname, keeptb, new_dvs_env, log_path, max_cpu, forcedvs, buffer_model = buffer_model, collect_coverage=collect_coverage)
 
             curr_dvs_env = new_dvs_env
 
@@ -1817,25 +1841,6 @@ def manage_dvs(request) -> str:
         return dvs
 
     yield update_dvs
-
-    if collect_coverage:
-        cmd = "docker exec {dvs.ctn.short_id} sh -c '" + " -h;".join(dvs.swssd) + "'"
-        subprocess.getstatusoutput(cmd)
-        time.sleep(1)
-        dvs.runcmd('killall5 -10')
-        time.sleep(1)
-        # Generate the converage info by lcov and copy to the host
-        cmd = f"docker exec {dvs.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
-        rc, output = subprocess.getstatusoutput(cmd)
-        if rc:
-            raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
-        coverage_info_name = dvs.ctn.short_id + '.coverage.info'
-        if name:
-            coverage_info_name = name + '.coverage.info'
-        cmd = f"docker cp {dvs.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
-        rc, output = subprocess.getstatusoutput(cmd)
-        if rc:
-            raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
 
     if graceful_stop:
         dvs.stop_swss()
@@ -1868,13 +1873,14 @@ def vst(request):
     keeptb = request.config.getoption("--keeptb")
     imgname = request.config.getoption("--imgname")
     max_cpu = request.config.getoption("--max_cpu")
+    collect_coverage = request.config.getoption("--collect-coverage")
     log_path = vctns if vctns else request.module.__name__
     dvs_env = getattr(request.module, "DVS_ENV", [])
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_supervisor.json"
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
-                                       forcedvs, topo)
+                                       forcedvs, topo, collect_coverage)
     yield vct
     vct.get_logs(request.module.__name__)
     vct.destroy()
@@ -1887,13 +1893,14 @@ def vct(request):
     keeptb = request.config.getoption("--keeptb")
     imgname = request.config.getoption("--imgname")
     max_cpu = request.config.getoption("--max_cpu")
+    collect_coverage = request.config.getoption("--collect-coverage")
     log_path = vctns if vctns else request.module.__name__
     dvs_env = getattr(request.module, "DVS_ENV", [])
     if not topo:
         # use ecmp topology as default
         topo = "virtual_chassis/chassis_with_ecmp_neighbors.json"
     vct = DockerVirtualChassisTopology(vctns, imgname, keeptb, dvs_env, log_path, max_cpu,
-                                       forcedvs, topo)
+                                       forcedvs, topo, collect_coverage)
     yield vct
     vct.get_logs(request.module.__name__)
     vct.destroy()
