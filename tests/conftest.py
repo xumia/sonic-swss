@@ -452,8 +452,19 @@ class DockerVirtualSwitch:
         self.del_appl_db()
 
         if self.collect_coverage:
+            # Generate the gcda files
             self.runcmd('killall5 -15')
             time.sleep(1)
+
+        # In case persistent dvs was used removed all the extra server link
+        # that were created
+        if self.persistent:
+            self.destroy_servers()
+
+        # Stop the services to reduce the CPU comsuption
+        self.runcmd('supervisorctl stop all')
+
+        if self.collect_coverage:
             # Generate the converage info by lcov and copy to the host
             cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
             rc, output = subprocess.getstatusoutput(cmd)
@@ -466,12 +477,6 @@ class DockerVirtualSwitch:
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
                 raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
-
-
-        # In case persistent dvs was used removed all the extra server link
-        # that were created
-        if self.persistent:
-            self.destroy_servers()
 
         # persistent and clean-up flag are mutually exclusive
         elif self.cleanup:
@@ -1825,10 +1830,6 @@ def manage_dvs(request) -> str:
             curr_dvs_env = new_dvs_env
 
         else:
-            # Workaround to generate GCDA files for GCov
-            cmd = " --help;".join(dvs.swssd)
-            subprocess.getstatusoutput(cmd)
-            time.sleep(1)
             # First generate GCDA files for GCov
             dvs.runcmd('killall5 -15')
             # If not re-creating the DVS, restart container
@@ -1845,6 +1846,7 @@ def manage_dvs(request) -> str:
     if graceful_stop:
         dvs.stop_swss()
         dvs.stop_syncd()
+
     dvs.get_logs()
     dvs.destroy()
 
