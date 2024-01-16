@@ -1796,8 +1796,6 @@ def manage_dvs(request) -> str:
     if using_persistent_dvs and force_recreate:
         pytest.fail("Options --dvsname and --force-recreate-dvs are mutually exclusive")
 
-    import pdb; pdb.set_trace()
-
     def update_dvs(log_path, new_dvs_env=[]):
         """
         Decides whether or not to create a new DVS
@@ -1839,23 +1837,6 @@ def manage_dvs(request) -> str:
         return dvs
 
     yield update_dvs
-
-    import pdb; pdb.set_trace()
-    if collect_coverage:
-        dvs.runcmd('killall5 -15')
-        time.sleep(1)
-        # Generate the converage info by lcov and copy to the host
-        cmd = f"docker exec {dvs.ctn.short_id} sh -c 'cd $BUILD_DIR; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
-        rc, output = subprocess.getstatusoutput(cmd)
-        if rc:
-            raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
-        coverage_info_name = dvs.ctn.short_id + '.coverage.info'
-        if name:
-            coverage_info_name = name + '.coverage.info'
-        cmd = f"docker cp {dvs.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
-        rc, output = subprocess.getstatusoutput(cmd)
-        if rc:
-            raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
 
     if graceful_stop:
         dvs.stop_swss()
