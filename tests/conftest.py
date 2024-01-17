@@ -466,7 +466,7 @@ class DockerVirtualSwitch:
 
         if self.collect_coverage:
             # Generate the converage info by lcov and copy to the host
-            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs; lcov -c --directory . --no-external  --output-file /tmp/coverage.info'"
+            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs ./lib/libSaiRedis*; lcov -c --directory . --no-external --exclude tests --output-file /tmp/coverage.info'"
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:
                 raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
