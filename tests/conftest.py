@@ -471,7 +471,7 @@ class DockerVirtualSwitch:
             if rc:
                 raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
 
-         In case persistent dvs was used removed all the extra server link
+        # In case persistent dvs was used removed all the extra server link
         # that were created
         if self.persistent:
             self.destroy_servers()
