@@ -45,7 +45,7 @@ jobs:
   displayName: vstest
   timeoutInMinutes: 2400
 
-  pool: sonic-common
+  pool: sonic-common-test
 
   steps:
   - script: |
