@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import io
+import traceback
 
 from typing import Dict, Tuple
 from datetime import datetime
@@ -447,33 +448,31 @@ class DockerVirtualSwitch:
         if getattr(self, 'appldb', False):
             del self.appldb
 
-
     def destroy(self) -> None:
         self.del_appl_db()
 
         if self.collect_coverage:
-            # Generate the gcda files
-            self.runcmd('killall5 -15')
-            time.sleep(1)
+            try:
+                # Generate the gcda files
+                self.runcmd('killall5 -15')
+                time.sleep(1)
 
-        # Stop the services to reduce the CPU comsuption
-        self.runcmd('supervisorctl stop all')
+                # Stop the services to reduce the CPU comsuption
+                self.cleanup:
+                    self.runcmd('supervisorctl stop all')
 
-        if self.collect_coverage:
-            # Generate the converage info by lcov and copy to the host
-            cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs ./lib/libSaiRedis*; lcov -c --directory . --no-external --exclude tests --output-file /tmp/coverage.info'"
-            rc, output = subprocess.getstatusoutput(cmd)
-            if rc:
-                raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
-            coverage_info_name = self.ctn.short_id + '.coverage.info'
-            cmd = r"cd $BUILD_DIR; find . -name '*.gcda' -type f   -exec tar -rf /tmp/gcda.tar {} \;"
-            subprocess.getstatusoutput(cmd)
-            cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {self.ctn.short_id}.gcda.tar"
-            subprocess.getstatusoutput(cmd)
-            cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
-            rc, output = subprocess.getstatusoutput(cmd)
-            if rc:
-                raise RuntimeError(f"Failed to run command: {cmd}. rc={rc}. output: {output}")
+                # Generate the converage info by lcov and copy to the host
+                cmd = f"cd $BUILD_DIR; rm -rf **/.libs ./lib/libSaiRedis*; lcov -c --directory . --no-external --exclude tests --output-file /tmp/coverage.info'"
+                self.runcmd(cmd)
+                coverage_info_name = self.ctn.short_id + '.coverage.info'
+                cmd = r"cd $BUILD_DIR; find . -name '*.gcda' -type f   -exec tar -rf /tmp/gcda.tar {} \;"
+                self.runcmd(cmd)
+                cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {self.ctn.short_id}.gcda.tar"
+                subprocess.getstatusoutput(cmd)
+                cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {self.ctn.short_id}.coverage.info"
+                subprocess.getstatusoutput(cmd)
+            except:
+                traceback.print_exc()
 
         # In case persistent dvs was used removed all the extra server link
         # that were created
