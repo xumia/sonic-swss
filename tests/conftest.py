@@ -466,6 +466,10 @@ class DockerVirtualSwitch:
             if rc:
                 raise RuntimeError(f"Failed to run lcov command. rc={rc}. output: {output}")
             coverage_info_name = self.ctn.short_id + '.coverage.info'
+            cmd = r"cd $BUILD_DIR; find . -name '*.gcda' -type f   -exec tar -rf /tmp/gcda.tar {} \;"
+            subprocess.getstatusoutput(cmd)
+            cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {self.ctn.short_id}.gcda.tar"
+            subprocess.getstatusoutput(cmd)
             cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {coverage_info_name}"
             rc, output = subprocess.getstatusoutput(cmd)
             if rc:

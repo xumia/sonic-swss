@@ -168,6 +168,9 @@ jobs:
 
   - script: |
       cp -r tests/log $(Build.ArtifactStagingDirectory)/
+      mkdir $(Build.ArtifactStagingDirectory)/gcov
+      cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/gcov/
+      cp tests/*.gcda.tar $(Build.ArtifactStagingDirectory)/gcov/
 
       if [ '${{ parameters.asan }}' == True ]; then
         cp -vr tests/log/*/log/asan $(Build.ArtifactStagingDirectory)/
