@@ -146,13 +146,12 @@ jobs:
 
   - script: |
       set -ex
-      image_name=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }}
-      docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml'
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
-      docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR; cat /tmp/s/tests/*coverage.info > coverage.info; lcov_cobertura coverage.info -o /tmp/s/coverage.xml; genhtml coverage.info -o /tmp/s/htmlcov/'
-      sudo chown $USER:$(id -ng) htmlcov -R
-      cp coverage.xml $(Build.ArtifactStagingDirectory)/
-      cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/
+      dotnet-coverage merge tests/*.coverage.info.xml -f cobertura -o coverage.xml
+      mkdir $(Build.ArtifactStagingDirectory)/gcov
+      cp *coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
+      cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/gcov/
+      cp *.gcda.tar $(Build.ArtifactStagingDirectory)/gcov/
       rm -rf $(Build.ArtifactStagingDirectory)/download
     condition: true
     displayName: "Collect coverage.xml"
