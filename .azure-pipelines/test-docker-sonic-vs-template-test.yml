@@ -135,7 +135,7 @@ jobs:
       all_tests=$(ls test_*.py)
       all_tests="${all_tests} p4rt"
       all_tests=$(ls test_*.py | head -n 10 | xargs)
-      all_tests="test_fabric.py test_fabric_port.py"
+      all_tests="test_srv6.py test_fabric.py test_fabric_port.py"
 
       if [ -n '${{ parameters.run_tests_pattern }}' ]; then
         all_tests=" $(ls ${{ parameters.run_tests_pattern }}) "
