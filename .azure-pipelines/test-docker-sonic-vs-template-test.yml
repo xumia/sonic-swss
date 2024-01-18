@@ -90,7 +90,7 @@ jobs:
         sudo apt-add-repository https://packages.microsoft.com/ubuntu/20.04/prod
         sudo apt-get update
         sudo apt-get install -y dotnet-sdk-7.0
-        sudo dotnet tool install dotnet-coverage --tool-path /usr/bin/
+        sudo dotnet tool install dotnet-reportgenerator-globaltool  --tool-path /usr/bin
     displayName: "Install .NET CORE"
 
   - script: |
@@ -149,9 +149,10 @@ jobs:
       set -ex
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
       dotnet-coverage merge tests/*coverage.xml -f cobertura -o all_coverage.xml
+      reportgenerator -reporttypes:Cobertura -reports:tests/*.coverage.xml -targetdir:.
       mkdir $(Build.ArtifactStagingDirectory)/gcov
       cp tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
-      cp all_coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
+      cp Cobertura.xml $(Build.ArtifactStagingDirectory)/gcov/
       cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/gcov/
       cp tests/*.gcda.tar $(Build.ArtifactStagingDirectory)/gcov/
       rm -rf $(Build.ArtifactStagingDirectory)/download
@@ -162,7 +163,7 @@ jobs:
     condition: true
     inputs:
       codeCoverageTool: Cobertura
-      summaryFileLocation: '$(System.DefaultWorkingDirectory)/all_coverage.xml'
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/Cobertura.xml'
       #reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
     displayName: 'Publish test coverage'
 
