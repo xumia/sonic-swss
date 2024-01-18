@@ -153,7 +153,7 @@ jobs:
       #docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR;  dotnet-coverage merge /tmp/s/tests/*.coverage.info.xml -f cobertura -o /tmp/s/coverage.xml'
       reportgenerator -reporttypes:Cobertura -reports:tests/*coverage.xml -targetdir:.
       mkdir $(Build.ArtifactStagingDirectory)/gcov
-      cp all_coverage.xml tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
+      cp Cobertura.xml tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
       cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/gcov/
       cp tests/*.gcda.tar $(Build.ArtifactStagingDirectory)/gcov/
     condition: ${{ parameters.archive_gcov }}
