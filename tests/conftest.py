@@ -458,7 +458,7 @@ class DockerVirtualSwitch:
                 time.sleep(1)
 
                 # Stop the services to reduce the CPU comsuption
-                self.cleanup:
+                if self.cleanup:
                     self.runcmd('supervisorctl stop all')
 
                 # Generate the converage info by lcov and copy to the host
