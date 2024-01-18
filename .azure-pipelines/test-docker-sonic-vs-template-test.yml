@@ -148,11 +148,12 @@ jobs:
   - script: |
       set -ex
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
-      dotnet-coverage merge tests/*.coverage.info.xml -f cobertura -o coverage.xml
+      dotnet-coverage merge tests/*.coverage.xml -f cobertura -o all_coverage.xml
       mkdir $(Build.ArtifactStagingDirectory)/gcov
-      cp *coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
+      cp tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
+      cp all_coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
       cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/gcov/
-      cp *.gcda.tar $(Build.ArtifactStagingDirectory)/gcov/
+      cp tests/*.gcda.tar $(Build.ArtifactStagingDirectory)/gcov/
       rm -rf $(Build.ArtifactStagingDirectory)/download
     condition: true
     displayName: "Collect coverage.xml"
@@ -161,7 +162,7 @@ jobs:
     condition: true
     inputs:
       codeCoverageTool: Cobertura
-      summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/all_coverage.xml'
       #reportDirectory: '$(System.DefaultWorkingDirectory)/htmlcov/'
     displayName: 'Publish test coverage'
 
