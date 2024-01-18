@@ -26,8 +26,16 @@ RUN if [ "$need_dbg" = "y" ] ; then dpkg -i /debs/swss-dbg_1.0.0_amd64.deb ; fi
 
 RUN apt-get update
 
-RUN apt-get -y install lcov
+RUN apt-get -y install lcov software-properties-common
 
 RUN pip3 install lcov_cobertura
+
+RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
+
+RUN apt-add-repository https://packages.microsoft.com/debian/$(. /etc/os-release && echo $VERSION_ID)/prod
+
+RUN apt-get update && apt-get install -y dotnet-sdk-7.0
+
+RUN dotnet tool install dotnet-coverage --tool-path /usr/bin/
 
 RUN if [ -n "$BUILD_DIR" ]; then mkdir -p $BUILD_DIR && tar -xf /tmp/gcov/gcov-source.tar -C $BUILD_DIR; fi

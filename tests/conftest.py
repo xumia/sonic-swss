@@ -462,14 +462,15 @@ class DockerVirtualSwitch:
                     self.runcmd('supervisorctl stop all')
 
                 # Generate the converage info by lcov and copy to the host
-                cmd = f"cd $BUILD_DIR; rm -rf **/.libs ./lib/libSaiRedis*; lcov -c --directory . --no-external --exclude tests --output-file /tmp/coverage.info'"
-                self.runcmd(cmd)
-                coverage_info_name = self.ctn.short_id + '.coverage.info'
-                cmd = r"cd $BUILD_DIR; find . -name '*.gcda' -type f   -exec tar -rf /tmp/gcda.tar {} \;"
-                self.runcmd(cmd)
-                cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {self.ctn.short_id}.gcda.tar"
+                cmd = f"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; rm -rf **/.libs ./lib/libSaiRedis*; lcov -c --directory . --no-external --exclude tests --output-file /tmp/coverage.info; lcov_cobertura /tmp/coverage.info -o /tmp/coverage.xml'"
+                subprocess.getstatusoutput(cmd)
+                cmd = r"docker exec {self.ctn.short_id} sh -c 'cd $BUILD_DIR; find . -name '*.gcda' -type f   -exec tar -rf /tmp/gcda.tar {} \;'"
+                subprocess.getstatusoutput(cmd)
+                cmd = f"docker cp {self.ctn.short_id}:/tmp/gcda.tar {self.ctn.short_id}.gcda.tar"
                 subprocess.getstatusoutput(cmd)
                 cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.info {self.ctn.short_id}.coverage.info"
+                subprocess.getstatusoutput(cmd)
+                cmd = f"docker cp {self.ctn.short_id}:/tmp/coverage.xml {self.ctn.short_id}.coverage.xml"
                 subprocess.getstatusoutput(cmd)
             except:
                 traceback.print_exc()
@@ -481,10 +482,13 @@ class DockerVirtualSwitch:
 
         # persistent and clean-up flag are mutually exclusive
         elif self.cleanup:
-            self.ctn.remove(force=True)
-            self.ctn_sw.remove(force=True)
-            os.system(f"rm -rf {self.mount}")
-            self.destroy_servers()
+            try:
+                self.ctn.remove(force=True)
+                self.ctn_sw.remove(force=True)
+                os.system(f"rm -rf {self.mount}")
+                self.destroy_servers()
+            except docker.errors.NotFound:
+                print("Skipped the container not found error, the container has already removed.")
 
     def destroy_servers(self):
         for s in self.servers:
