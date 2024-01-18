@@ -148,6 +148,7 @@ jobs:
   - script: |
       set -ex
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
+      cp $(Build.ArtifactStagingDirectory)/download/coverage.xml ./tests/
       reportgenerator -reporttypes:Cobertura -reports:tests/*coverage.xml -targetdir:.
       mkdir $(Build.ArtifactStagingDirectory)/gcov
       cp tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
