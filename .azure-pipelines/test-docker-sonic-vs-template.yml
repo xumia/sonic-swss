@@ -91,6 +91,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y dotnet-sdk-7.0
         sudo dotnet tool install dotnet-coverage --tool-path /usr/bin/
+        sudo dotnet tool install dotnet-reportgenerator-globaltool  --tool-path /usr/bin
     displayName: "Install .NET CORE"
 
   - script: |
@@ -151,6 +152,7 @@ jobs:
       #image_name=docker-sonic-vs:$(Build.DefinitionName).$(Build.BuildNumber).asan-${{ parameters.asan }}
       #docker run --rm -v $(pwd):/tmp/s --entrypoint bash $image_name -c 'cd $BUILD_DIR;  dotnet-coverage merge /tmp/s/tests/*.coverage.info.xml -f cobertura -o /tmp/s/coverage.xml'
       dotnet-coverage merge tests/*coverage.xml -f cobertura -o all_coverage.xml
+      reportgenerator -reporttypes:Cobertura -reports:tests/*coverage.xml -targetdir:.
       mkdir $(Build.ArtifactStagingDirectory)/gcov
       cp all_coverage.xml tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
       cp tests/*coverage.info $(Build.ArtifactStagingDirectory)/gcov/
@@ -162,7 +164,7 @@ jobs:
     condition: ${{ parameters.archive_gcov }}
     inputs:
       codeCoverageTool: Cobertura
-      summaryFileLocation: '$(System.DefaultWorkingDirectory)/all_coverage.xml'
+      summaryFileLocation: '$(System.DefaultWorkingDirectory)/Cobertura.xml'
     displayName: 'Publish test coverage'
 
   - task: PublishTestResults@2
