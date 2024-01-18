@@ -148,8 +148,7 @@ jobs:
   - script: |
       set -ex
       cp $(Build.ArtifactStagingDirectory)/download/coverage.info ./tests/
-      dotnet-coverage merge tests/*coverage.xml -f cobertura -o all_coverage.xml
-      reportgenerator -reporttypes:Cobertura -reports:tests/*.coverage.xml -targetdir:.
+      reportgenerator -reporttypes:Cobertura -reports:tests/*coverage.xml -targetdir:.
       mkdir $(Build.ArtifactStagingDirectory)/gcov
       cp tests/*coverage.xml $(Build.ArtifactStagingDirectory)/gcov/
       cp Cobertura.xml $(Build.ArtifactStagingDirectory)/gcov/
