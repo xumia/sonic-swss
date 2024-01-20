@@ -34,13 +34,4 @@ RUN lcov --version
 
 RUN pip3 install lcov_cobertura
 
-RUN curl -sSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
-
-RUN apt-add-repository https://packages.microsoft.com/debian/$(. /etc/os-release && echo $VERSION_ID)/prod
-
-RUN apt-get update && apt-get install -y dotnet-sdk-7.0
-
-## TODO delete dotnet relative code
-RUN dotnet tool install dotnet-coverage --tool-path /usr/bin/
-
 RUN if [ -n "$BUILD_DIR" ]; then mkdir -p $BUILD_DIR && tar -xf /tmp/gcov/gcov-source.tar -C $BUILD_DIR; fi
