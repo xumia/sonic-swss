@@ -102,20 +102,20 @@ macsecmgrd_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_SAI) $(
 macsecmgrd_LDADD = $(LDFLAGS_ASAN) $(COMMON_LIBS) $(SAIMETA_LIBS)
 
 if GCOV_ENABLED
-vlanmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-teammgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-portmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-fabricmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-intfmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-buffermgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-vrfmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-nbrmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-vxlanmgrd_SOURCES +=  ../gcovpreload/gcovpreload.cpp
-sflowmgrd_SOURCES +=  ../gcovpreload/gcovpreload.cpp
-natmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-coppmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-tunnelmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
-macsecmgrd_SOURCES += ../gcovpreload/gcovpreload.cpp
+vlanmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+teammgrd_SOURCES += ../gcovpreload/gcovpreload.c
+portmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+fabricmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+intfmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+buffermgrd_SOURCES += ../gcovpreload/gcovpreload.c
+vrfmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+nbrmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+vxlanmgrd_SOURCES +=  ../gcovpreload/gcovpreload.c
+sflowmgrd_SOURCES +=  ../gcovpreload/gcovpreload.c
+natmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+coppmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+tunnelmgrd_SOURCES += ../gcovpreload/gcovpreload.c
+macsecmgrd_SOURCES += ../gcovpreload/gcovpreload.c
 endif
 
 if ASAN_ENABLED

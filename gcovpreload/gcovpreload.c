@@ -3,13 +3,16 @@
 #include <signal.h>
 #include <signal.h>
 
-extern "C" void __gcov_dump();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 void sighandler(int signo)
 {
 #ifdef SIMPLE_WAY
     exit(signo);
 #else
+    extern void __gcov_dump();
     __gcov_dump();
     raise(signo); /* raise the signal again to crash process */
 #endif
@@ -41,3 +44,7 @@ void ctor()
         }
     }
 }
+
+#ifdef __cplusplus
+}   
+#endif

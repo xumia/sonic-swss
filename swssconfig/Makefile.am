@@ -21,8 +21,8 @@ swssplayer_CPPFLAGS = $(DBGFLAGS) $(AM_CFLAGS) $(CFLAGS_COMMON) $(CFLAGS_ASAN)
 swssplayer_LDADD = $(LDFLAGS_ASAN) -lswsscommon
 
 if GCOV_ENABLED
-swssconfig_SOURCES += ../gcovpreload/gcovpreload.cpp
-swssplayer_SOURCES += ../gcovpreload/gcovpreload.cpp
+swssconfig_SOURCES += ../gcovpreload/gcovpreload.c
+swssplayer_SOURCES += ../gcovpreload/gcovpreload.c
 endif
 
 if ASAN_ENABLED
