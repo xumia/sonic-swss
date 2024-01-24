@@ -11,8 +11,4 @@ set -x
 for ((i=1; i<=$RETRY; i++)); do
     echo "Running the py test for tests: $TESTS, $i/$RETRY..."
     py.test -v --force-flaky --junitxml="$JUNITXML" $PY_TEST_PARAMS --imgname="$IMAGE_NAME" $TESTS && break
-    if [ $i == $RETRY ]; then
-        echo "The tests $TESTS failed after retrying $RETRY times"
-        exit 1
-    fi
 done
