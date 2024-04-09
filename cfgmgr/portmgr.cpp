@@ -14,8 +14,10 @@ using namespace swss;
 PortMgr::PortMgr(DBConnector *cfgDb, DBConnector *appDb, DBConnector *stateDb, const vector<string> &tableNames) :
         Orch(cfgDb, tableNames),
         m_cfgPortTable(cfgDb, CFG_PORT_TABLE_NAME),
+        m_cfgSendToIngressPortTable(cfgDb, CFG_SEND_TO_INGRESS_PORT_TABLE_NAME),
         m_cfgLagMemberTable(cfgDb, CFG_LAG_MEMBER_TABLE_NAME),
         m_statePortTable(stateDb, STATE_PORT_TABLE_NAME),
+        m_appSendToIngressPortTable(appDb, APP_SEND_TO_INGRESS_PORT_TABLE_NAME),
         m_appPortTable(appDb, APP_PORT_TABLE_NAME)
 {
 }
@@ -23,27 +25,55 @@ PortMgr::PortMgr(DBConnector *cfgDb, DBConnector *appDb, DBConnector *stateDb, c
 bool PortMgr::setPortMtu(const string &alias, const string &mtu)
 {
     stringstream cmd;
-    string res;
+    string res, cmd_str;
 
     // ip link set dev <port_name> mtu <mtu>
     cmd << IP_CMD << " link set dev " << shellquote(alias) << " mtu " << shellquote(mtu);
-    EXEC_WITH_ERROR_THROW(cmd.str(), res);
-
-    // Set the port MTU in application database to update both
-    // the port MTU and possibly the port based router interface MTU
-    return writeConfigToAppDb(alias, "mtu", mtu);
+    cmd_str = cmd.str();
+    int ret = swss::exec(cmd_str, res);
+    if (!ret)
+    {
+        // Set the port MTU in application database to update both
+        // the port MTU and possibly the port based router interface MTU
+        return writeConfigToAppDb(alias, "mtu", mtu);
+    }
+    else if (!isPortStateOk(alias))
+    {
+        // Can happen when a DEL notification is sent by portmgrd immediately followed by a new SET notif
+        SWSS_LOG_WARN("Setting mtu to alias:%s netdev failed with cmd:%s, rc:%d, error:%s", alias.c_str(), cmd_str.c_str(), ret, res.c_str());
+        return false;
+    }
+    else
+    {
+        throw runtime_error(cmd_str + " : " + res);
+    }
+    return true;
 }
 
 bool PortMgr::setPortAdminStatus(const string &alias, const bool up)
 {
     stringstream cmd;
-    string res;
+    string res, cmd_str;
 
     // ip link set dev <port_name> [up|down]
     cmd << IP_CMD << " link set dev " << shellquote(alias) << (up ? " up" : " down");
-    EXEC_WITH_ERROR_THROW(cmd.str(), res);
-
-    return writeConfigToAppDb(alias, "admin_status", (up ? "up" : "down"));
+    cmd_str = cmd.str();
+    int ret = swss::exec(cmd_str, res);
+    if (!ret)
+    {
+        return writeConfigToAppDb(alias, "admin_status", (up ? "up" : "down"));
+    }
+    else if (!isPortStateOk(alias))
+    {
+        // Can happen when a DEL notification is sent by portmgrd immediately followed by a new SET notification
+        SWSS_LOG_WARN("Setting admin_status to alias:%s netdev failed with cmd%s, rc:%d, error:%s", alias.c_str(), cmd_str.c_str(), ret, res.c_str());
+        return false;
+    }
+    else
+    {
+        throw runtime_error(cmd_str + " : " + res);
+    }
+    return true;
 }
 
 bool PortMgr::isPortStateOk(const string &alias)
@@ -65,11 +95,49 @@ bool PortMgr::isPortStateOk(const string &alias)
     return false;
 }
 
+void PortMgr::doSendToIngressPortTask(Consumer &consumer)
+{
+    SWSS_LOG_ENTER();
+    auto it = consumer.m_toSync.begin();
+    while (it != consumer.m_toSync.end())
+    {
+        KeyOpFieldsValuesTuple t = it->second;
+
+        string alias = kfvKey(t);
+        string op = kfvOp(t);
+        auto fvs = kfvFieldsValues(t);
+
+        if (op == SET_COMMAND)
+        {
+            SWSS_LOG_NOTICE("Add SendToIngress Port: %s",
+                            alias.c_str());
+            m_appSendToIngressPortTable.set(alias, fvs);
+        }
+        else if (op == DEL_COMMAND)
+        {
+            SWSS_LOG_NOTICE("Removing SendToIngress Port: %s",
+                                alias.c_str());
+            m_appSendToIngressPortTable.del(alias);
+        }
+        else
+        {
+            SWSS_LOG_ERROR("Unknown operation type %s", op.c_str());
+        }
+        it = consumer.m_toSync.erase(it);
+    }
+
+}
+
 void PortMgr::doTask(Consumer &consumer)
 {
     SWSS_LOG_ENTER();
 
     auto table = consumer.getTableName();
+    if (table == CFG_SEND_TO_INGRESS_PORT_TABLE_NAME)
+    {
+        doSendToIngressPortTask(consumer);
+        return;
+    }
 
     auto it = consumer.m_toSync.begin();
     while (it != consumer.m_toSync.end())
@@ -118,16 +186,15 @@ void PortMgr::doTask(Consumer &consumer)
                 {
                     admin_status = fvValue(i);
                 }
-                else 
+                else
                 {
                     field_values.emplace_back(i);
                 }
             }
 
-            for (auto &entry : field_values)
+            if (field_values.size())
             {
-                writeConfigToAppDb(alias, fvField(entry), fvValue(entry));
-                SWSS_LOG_NOTICE("Configure %s %s to %s", alias.c_str(), fvField(entry).c_str(), fvValue(entry).c_str());
+                writeConfigToAppDb(alias, field_values);
             }
 
             if (!portOk)
@@ -136,6 +203,7 @@ void PortMgr::doTask(Consumer &consumer)
 
                 writeConfigToAppDb(alias, "mtu", mtu);
                 writeConfigToAppDb(alias, "admin_status", admin_status);
+                /* Retry setting these params after the netdev is created */
                 field_values.clear();
                 field_values.emplace_back("mtu", mtu);
                 field_values.emplace_back("admin_status", admin_status);
@@ -174,5 +242,11 @@ bool PortMgr::writeConfigToAppDb(const std::string &alias, const std::string &fi
     fvs.push_back(fv);
     m_appPortTable.set(alias, fvs);
 
+    return true;
+}
+
+bool PortMgr::writeConfigToAppDb(const std::string &alias, std::vector<FieldValueTuple> &field_values)
+{
+    m_appPortTable.set(alias, field_values);
     return true;
 }

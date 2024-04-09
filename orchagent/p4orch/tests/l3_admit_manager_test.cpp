@@ -4,10 +4,10 @@
 #include <gtest/gtest.h>
 
 #include <functional>
+#include <nlohmann/json.hpp>
 #include <string>
 #include <unordered_map>
 
-#include "json.hpp"
 #include "mock_response_publisher.h"
 #include "mock_sai_my_mac.h"
 #include "p4oidmapper.h"
@@ -178,7 +178,7 @@ class L3AdmitManagerTest : public ::testing::Test
 
     void Enqueue(const swss::KeyOpFieldsValuesTuple &entry)
     {
-        l3_admit_manager_.enqueue(entry);
+        l3_admit_manager_.enqueue(APP_P4RT_L3_ADMIT_TABLE_NAME, entry);
     }
 
     void Drain()

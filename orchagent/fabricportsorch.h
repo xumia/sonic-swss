@@ -12,21 +12,29 @@
 class FabricPortsOrch : public Orch, public Subject
 {
 public:
-    FabricPortsOrch(DBConnector *appl_db, vector<table_name_with_pri_t> &tableNames);
+    FabricPortsOrch(DBConnector *appl_db, vector<table_name_with_pri_t> &tableNames,
+                    bool fabricPortStatEnabled=true, bool fabricQueueStatEnabled=true);
     bool allPortsReady();
     void generateQueueStats();
 
 private:
+    bool m_fabricPortStatEnabled;
+    bool m_fabricQueueStatEnabled;
+
     shared_ptr<DBConnector> m_state_db;
     shared_ptr<DBConnector> m_counter_db;
     shared_ptr<DBConnector> m_flex_db;
+    shared_ptr<DBConnector> m_appl_db;
 
     unique_ptr<Table> m_stateTable;
-    unique_ptr<Table> m_laneQueueCounterTable;
-    unique_ptr<Table> m_lanePortCounterTable;
+    unique_ptr<Table> m_portNameQueueCounterTable;
+    unique_ptr<Table> m_portNamePortCounterTable;
+    unique_ptr<Table> m_fabricCounterTable;
+    unique_ptr<Table> m_applTable;
     unique_ptr<ProducerTable> m_flexCounterTable;
 
     swss::SelectableTimer *m_timer = nullptr;
+    swss::SelectableTimer *m_debugTimer = nullptr;
 
     FlexCounterManager port_stat_manager;
     FlexCounterManager queue_stat_manager;
@@ -42,6 +50,7 @@ private:
     int getFabricPortList();
     void generatePortStats();
     void updateFabricPortState();
+    void updateFabricDebugCounters();
 
     void doTask() override;
     void doTask(Consumer &consumer);

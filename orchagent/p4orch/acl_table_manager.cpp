@@ -1,5 +1,6 @@
 #include "p4orch/acl_table_manager.h"
 
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -7,7 +8,6 @@
 #include "SaiAttributeList.h"
 #include "crmorch.h"
 #include "dbconnector.h"
-#include "json.hpp"
 #include "logger.h"
 #include "orch.h"
 #include "p4orch.h"
@@ -205,7 +205,13 @@ ReturnCodeOr<std::vector<sai_attribute_t>> AclTableManager::getUdfSaiAttrs(const
     return udf_attrs;
 }
 
-void AclTableManager::enqueue(const swss::KeyOpFieldsValuesTuple &entry)
+ReturnCode AclTableManager::getSaiObject(const std::string &json_key, sai_object_type_t &object_type,
+                                         std::string &object_key)
+{
+    return StatusCode::SWSS_RC_UNIMPLEMENTED;
+}
+
+void AclTableManager::enqueue(const std::string &table_name, const swss::KeyOpFieldsValuesTuple &entry)
 {
     m_entries.push_back(entry);
 }

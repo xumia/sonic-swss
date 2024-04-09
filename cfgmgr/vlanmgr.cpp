@@ -134,6 +134,11 @@ bool VlanMgr::addHostVlan(int vlan_id)
     std::string res;
     EXEC_WITH_ERROR_THROW(cmds, res);
 
+    res.clear();
+    const std::string echo_cmd = std::string("")
+      + ECHO_CMD + " 0 > /proc/sys/net/ipv4/conf/" + VLAN_PREFIX + std::to_string(vlan_id) + "/arp_evict_nocarrier";
+    swss::exec(echo_cmd, res);
+
     return true;
 }
 
@@ -426,13 +431,13 @@ void VlanMgr::doVlanTask(Consumer &consumer)
             {
                 SWSS_LOG_ERROR("%s doesn't exist", key.c_str());
             }
-            SWSS_LOG_DEBUG("%s", (dumpTuple(consumer, t)).c_str());
+            SWSS_LOG_DEBUG("%s", (consumer.dumpTuple(t)).c_str());
             it = consumer.m_toSync.erase(it);
         }
         else
         {
             SWSS_LOG_ERROR("Unknown operation type %s", op.c_str());
-            SWSS_LOG_DEBUG("%s", (dumpTuple(consumer, t)).c_str());
+            SWSS_LOG_DEBUG("%s", (consumer.dumpTuple(t)).c_str());
             it = consumer.m_toSync.erase(it);
         }
     }
@@ -534,7 +539,7 @@ void VlanMgr::processUntaggedVlanMembers(string vlan, const string &members)
             fvVector.push_back(t);
             KeyOpFieldsValuesTuple tuple = make_tuple(member_key, SET_COMMAND, fvVector);
             consumer.addToSync(tuple);
-            SWSS_LOG_DEBUG("%s", (dumpTuple(consumer, tuple)).c_str());
+            SWSS_LOG_DEBUG("%s", (consumer.dumpTuple(tuple)).c_str());
         }
         /*
          * There is pending task from consumer pipe, in this case just skip it.
@@ -654,7 +659,7 @@ void VlanMgr::doVlanMemberTask(Consumer &consumer)
             {
                 SWSS_LOG_DEBUG("%s doesn't exist", kfvKey(t).c_str());
             }
-            SWSS_LOG_DEBUG("%s", (dumpTuple(consumer, t)).c_str());
+            SWSS_LOG_DEBUG("%s", (consumer.dumpTuple(t)).c_str());
         }
         else
         {

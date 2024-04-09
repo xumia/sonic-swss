@@ -196,7 +196,7 @@ task_process_status BufferMgr::doSpeedUpdateTask(string port)
     // Although we have up to 8 PGs for now, the range to check is expanded to 32 support more PGs
     set<string> lossless_pg_combinations = generateIdListFromMap(lossless_pg_id, sizeof(lossless_pg_id));
 
-    if (m_portStatusLookup[port] == "down" && m_platform == "mellanox")
+    if (m_portStatusLookup[port] == "down" && (m_platform == "mellanox" || m_platform == "barefoot"))
     {
         for (auto lossless_pg : lossless_pg_combinations)
         {
@@ -549,24 +549,23 @@ void BufferMgr::doTask(Consumer &consumer)
                     task_status = doSpeedUpdateTask(port);
                 }
             }
-
-            switch (task_status)
-            {
-                case task_process_status::task_failed:
-                    SWSS_LOG_ERROR("Failed to process table update");
-                    return;
-                case task_process_status::task_need_retry:
-                    SWSS_LOG_INFO("Unable to process table update. Will retry...");
-                    ++it;
-                    break;
-                case task_process_status::task_invalid_entry:
-                    SWSS_LOG_ERROR("Failed to process invalid entry, drop it");
-                    it = consumer.m_toSync.erase(it);
-                    break;
-                default:
-                    it = consumer.m_toSync.erase(it);
-                    break;
-            }
+        }
+        switch (task_status)
+        {
+            case task_process_status::task_failed:
+                SWSS_LOG_ERROR("Failed to process table update");
+                return;
+            case task_process_status::task_need_retry:
+                SWSS_LOG_INFO("Unable to process table update. Will retry...");
+                ++it;
+                break;
+            case task_process_status::task_invalid_entry:
+                SWSS_LOG_ERROR("Failed to process invalid entry, drop it");
+                it = consumer.m_toSync.erase(it);
+                break;
+            default:
+                it = consumer.m_toSync.erase(it);
+                break;
         }
     }
 }

@@ -183,7 +183,7 @@ void IntfsOrch::increaseRouterIntfsRefCount(const string &alias)
     SWSS_LOG_ENTER();
 
     m_syncdIntfses[alias].ref_count++;
-    SWSS_LOG_DEBUG("Router interface %s ref count is increased to %d",
+    SWSS_LOG_INFO("Router interface %s ref count is increased to %d",
                   alias.c_str(), m_syncdIntfses[alias].ref_count);
 }
 
@@ -192,7 +192,7 @@ void IntfsOrch::decreaseRouterIntfsRefCount(const string &alias)
     SWSS_LOG_ENTER();
 
     m_syncdIntfses[alias].ref_count--;
-    SWSS_LOG_DEBUG("Router interface %s ref count is decreased to %d",
+    SWSS_LOG_INFO("Router interface %s ref count is decreased to %d",
                   alias.c_str(), m_syncdIntfses[alias].ref_count);
 }
 
@@ -368,6 +368,21 @@ bool IntfsOrch::setIntfVlanFloodType(const Port &port, sai_vlan_flood_control_ty
         }
     }
 
+    // Also set ipv6 multicast flood type
+    attr.id = SAI_VLAN_ATTR_UNKNOWN_MULTICAST_FLOOD_CONTROL_TYPE;
+    attr.value.s32 = vlan_flood_type;
+
+    status = sai_vlan_api->set_vlan_attribute(port.m_vlan_info.vlan_oid, &attr);
+    if (status != SAI_STATUS_SUCCESS)
+    {
+        SWSS_LOG_ERROR("Failed to set multicast flood type for VLAN %u, rv:%d", port.m_vlan_info.vlan_id, status);
+        task_process_status handle_status = handleSaiSetStatus(SAI_API_VLAN, status);
+        if (handle_status != task_success)
+        {
+            return parseHandleSaiStatusFailure(handle_status);
+        }
+    }
+
     return true;
 }
 
@@ -469,6 +484,11 @@ bool IntfsOrch::setIntf(const string& alias, sai_object_id_t vrf_id, const IpPre
 
 {
     SWSS_LOG_ENTER();
+
+    if (m_removingIntfses.find(alias) != m_removingIntfses.end())
+    {
+        return false;
+    }
 
     Port port;
     gPortsOrch->getPort(alias, port);
@@ -691,7 +711,7 @@ void IntfsOrch::doTask(Consumer &consumer)
         MacAddress mac;
 
         uint32_t mtu = 0;
-        bool adminUp;
+        bool adminUp = false;
         bool adminStateChanged = false;
         uint32_t nat_zone_id = 0;
         string proxy_arp = "";
@@ -860,10 +880,11 @@ void IntfsOrch::doTask(Consumer &consumer)
             {
                 if (!ip_prefix_in_key && isSubIntf)
                 {
-                    if (adminStateChanged == false)
+                    if (!adminStateChanged)
                     {
                         adminUp = port.m_admin_state_up;
                     }
+
                     if (!gPortsOrch->addSubPort(port, alias, vlan, adminUp, mtu))
                     {
                         it++;
@@ -891,6 +912,12 @@ void IntfsOrch::doTask(Consumer &consumer)
                     it++;
                     continue;
                 }
+
+                if (!adminStateChanged)
+                {
+                    adminUp = port.m_admin_state_up;
+                }
+
                 if (!vnet_orch->setIntf(alias, vnet_name, ip_prefix_in_key ? &ip_prefix : nullptr, adminUp, mtu))
                 {
                     it++;
@@ -904,7 +931,7 @@ void IntfsOrch::doTask(Consumer &consumer)
             }
             else
             {
-                if (adminStateChanged == false)
+                if (!adminStateChanged)
                 {
                     adminUp = port.m_admin_state_up;
                 }
@@ -1076,10 +1103,12 @@ void IntfsOrch::doTask(Consumer &consumer)
             {
                 if (removeIntf(alias, port.m_vr_id, ip_prefix_in_key ? &ip_prefix : nullptr))
                 {
+                    m_removingIntfses.erase(alias);
                     it = consumer.m_toSync.erase(it);
                 }
                 else
                 {
+                    m_removingIntfses.insert(alias);
                     it++;
                     continue;
                 }
@@ -1271,13 +1300,12 @@ bool IntfsOrch::removeRouterIntfs(Port &port)
 
     if (m_syncdIntfses[port.m_alias].ref_count > 0)
     {
-        SWSS_LOG_NOTICE("Router interface is still referenced");
+        SWSS_LOG_NOTICE("Router interface %s is still referenced with ref count %d", port.m_alias.c_str(), m_syncdIntfses[port.m_alias].ref_count);
         return false;
     }
 
     const auto id = sai_serialize_object_id(port.m_rif_id);
     removeRifFromFlexCounter(id, port.m_alias);
-    cleanUpRifFromCounterDb(id, port.m_alias);
 
     sai_status_t status = sai_router_intfs_api->remove_router_interface(port.m_rif_id);
     if (status != SAI_STATUS_SUCCESS)
@@ -1500,44 +1528,10 @@ void IntfsOrch::removeRifFromFlexCounter(const string &id, const string &name)
     SWSS_LOG_DEBUG("Unregistered interface %s from Flex counter", name.c_str());
 }
 
-/*
-   TODO A race condition can exist when swss removes the counter from COUNTERS DB
-   and at the same time syncd is inserting a new entry in COUNTERS DB. Therefore
-   all the rif counters cleanup code should move to syncd
-*/
-void IntfsOrch::cleanUpRifFromCounterDb(const string &id, const string &name)
-{
-    SWSS_LOG_ENTER();
-    string counter_key = getRifCounterTableKey(id);
-    string rate_key = getRifRateTableKey(id);
-    string rate_init_key = getRifRateInitTableKey(id);
-    m_counter_db->del(counter_key);
-    m_counter_db->del(rate_key);
-    m_counter_db->del(rate_init_key);
-    SWSS_LOG_NOTICE("CleanUp interface %s oid %s from counter db", name.c_str(),id.c_str());
-}
-
 string IntfsOrch::getRifFlexCounterTableKey(string key)
 {
     return string(RIF_STAT_COUNTER_FLEX_COUNTER_GROUP) + ":" + key;
 }
-
-string IntfsOrch::getRifCounterTableKey(string key)
-{
-    return "COUNTERS:" + key;
-}
-
-string IntfsOrch::getRifRateTableKey(string key)
-{
-    return "RATES:" + key;
-}
-
-string IntfsOrch::getRifRateInitTableKey(string key)
-{
-    return "RATES:" + key + ":RIF";
-}
-
-
 
 void IntfsOrch::generateInterfaceMap()
 {

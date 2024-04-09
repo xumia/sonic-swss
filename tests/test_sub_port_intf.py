@@ -1,6 +1,5 @@
 import json
 import time
-import pytest
 
 from dvslib.dvs_common import wait_for_result
 from swsscommon import swsscommon
@@ -185,11 +184,12 @@ class TestSubPortIntf(object):
         self.config_db.create_entry(tbl_name, port_name, fvs)
         time.sleep(1)
 
-        if port_name.startswith(ETHERNET_PREFIX):
-            self.set_parent_port_oper_status(dvs, port_name, "down")
-            self.set_parent_port_oper_status(dvs, port_name, "up")
-        else:
-            self.set_parent_port_oper_status(dvs, port_name, "up")
+        if status == "up":
+            if port_name.startswith(ETHERNET_PREFIX):
+                self.set_parent_port_oper_status(dvs, port_name, "down")
+                self.set_parent_port_oper_status(dvs, port_name, "up")
+            else:
+                self.set_parent_port_oper_status(dvs, port_name, "up")
 
     def create_vxlan_tunnel(self, tunnel_name, vtep_ip):
         fvs = {
@@ -582,7 +582,6 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.check_lag_removal(parent_port_oid)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_creation(self, dvs):
         self.connect_dbs(dvs)
 
@@ -669,7 +668,6 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.asic_db.wait_for_n_keys(ASIC_LAG_TABLE, 0)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_add_ip_addrs(self, dvs):
         self.connect_dbs(dvs)
 
@@ -745,7 +743,6 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.check_lag_removal(parent_port_oid)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_appl_db_proc_seq(self, dvs):
         self.connect_dbs(dvs)
 
@@ -767,7 +764,7 @@ class TestSubPortIntf(object):
         self._test_sub_port_intf_appl_db_proc_seq(dvs, self.LAG_SUB_PORT_INTERFACE_UNDER_TEST, admin_up=True, vrf_name=self.VNET_UNDER_TEST)
         self._test_sub_port_intf_appl_db_proc_seq(dvs, self.LAG_SUB_PORT_INTERFACE_UNDER_TEST, admin_up=False, vrf_name=self.VNET_UNDER_TEST)
 
-    def _test_sub_port_intf_admin_status_change(self, dvs, sub_port_intf_name, vrf_name=None):
+    def _test_sub_port_intf_admin_status_change(self, dvs, sub_port_intf_name, vrf_name=None, defer_parent_adminup=False):
         substrs = sub_port_intf_name.split(VLAN_SUB_INTERFACE_SEPARATOR)
         parent_port = substrs[0]
         parent_port = self.get_parent_port(sub_port_intf_name)
@@ -775,7 +772,16 @@ class TestSubPortIntf(object):
         vrf_oid = self.default_vrf_oid
         old_rif_oids = self.get_oids(ASIC_RIF_TABLE)
 
+        if defer_parent_adminup:
+            self.set_parent_port_admin_status(dvs, parent_port, "down")
+            _, oa_pid = dvs.runcmd("pgrep orchagent")
+            oa_pid = oa_pid.strip()
+            # This is to block orchagent daemon in order to simulate the scenario that
+            # there are a large number of items pending in orchagent's m_toSync queue
+            dvs.runcmd("kill -s SIGSTOP {}".format(oa_pid))
+
         self.set_parent_port_admin_status(dvs, parent_port, "up")
+
         if vrf_name:
             self.create_vrf(vrf_name)
             vrf_oid = self.get_newly_created_oid(ASIC_VIRTUAL_ROUTER_TABLE, [vrf_oid])
@@ -784,6 +790,10 @@ class TestSubPortIntf(object):
         self.add_sub_port_intf_ip_addr(sub_port_intf_name, self.IPV4_ADDR_UNDER_TEST)
         if vrf_name is None or not vrf_name.startswith(VNET_PREFIX):
             self.add_sub_port_intf_ip_addr(sub_port_intf_name, self.IPV6_ADDR_UNDER_TEST)
+
+        if defer_parent_adminup:
+            dvs.runcmd("kill -s SIGCONT {}".format(oa_pid))
+            time.sleep(1)
 
         fv_dict = {
             ADMIN_STATUS: "up",
@@ -870,12 +880,12 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.asic_db.wait_for_n_keys(ASIC_LAG_TABLE, 0)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_admin_status_change(self, dvs):
         self.connect_dbs(dvs)
 
         self._test_sub_port_intf_admin_status_change(dvs, self.SUB_PORT_INTERFACE_UNDER_TEST)
         self._test_sub_port_intf_admin_status_change(dvs, self.LAG_SUB_PORT_INTERFACE_UNDER_TEST)
+        self._test_sub_port_intf_admin_status_change(dvs, self.LAG_SUB_PORT_INTERFACE_UNDER_TEST, defer_parent_adminup=True)
 
         self._test_sub_port_intf_admin_status_change(dvs, self.SUB_PORT_INTERFACE_UNDER_TEST, self.VRF_UNDER_TEST)
         self._test_sub_port_intf_admin_status_change(dvs, self.LAG_SUB_PORT_INTERFACE_UNDER_TEST, self.VRF_UNDER_TEST)
@@ -955,7 +965,6 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.asic_db.wait_for_n_keys(ASIC_LAG_TABLE, 0)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_remove_ip_addrs(self, dvs):
         self.connect_dbs(dvs)
 
@@ -1147,7 +1156,6 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.check_lag_removal(parent_port_oid)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_removal(self, dvs):
         self.connect_dbs(dvs)
 
@@ -1223,7 +1231,6 @@ class TestSubPortIntf(object):
             self.remove_lag(parent_port)
             self.asic_db.wait_for_n_keys(ASIC_LAG_TABLE, 0)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_mtu(self, dvs):
         self.connect_dbs(dvs)
 
@@ -1452,7 +1459,6 @@ class TestSubPortIntf(object):
 
             parent_port_idx += (4 if parent_port_prefix == ETHERNET_PREFIX else 1)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_nhg_accel(self, dvs):
         self.connect_dbs(dvs)
 
@@ -1593,7 +1599,6 @@ class TestSubPortIntf(object):
 
             parent_port_idx += (4 if parent_port_prefix == ETHERNET_PREFIX else 1)
 
-    @pytest.mark.skip(reason="Failing. Under investigation")
     def test_sub_port_intf_oper_down_with_pending_neigh_route_tasks(self, dvs):
         self.connect_dbs(dvs)
 
